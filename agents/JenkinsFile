@@ -62,7 +62,8 @@ def parallelDeploy(servers) {
         parallelSteps["Deploy to ${server}"] = {
             // SSH into each server and execute the deployment script
             sh """
-                sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < ./deployment-scripts/${env.SCRIPT_FILE}
+                sshpass -p "$PASS" scp -o StrictHostKeyChecking=no ./deployment-scripts/deploy.sh $USER@${server}:/tmp/${env.SCRIPT_FILE}
+                sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < /tmp/${env.SCRIPT_FILE}
             """
         }
     }

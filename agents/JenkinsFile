@@ -12,7 +12,7 @@ pipeline {
     environment {
         GIT_REPO_URL = 'https://github.com/nivasgoud/Jenkins-POC.git'
         SSH_CREDENTIALS_ID = '2b62c75d-3de5-4729-967a-b7dc76a48f2d'
-        SCRIPT_FILE = '/home/centos/patches/deploy.sh'
+        SCRIPT_FILE = 'deploy.sh'
     }
     stages {
         stage('Checkout') {
@@ -62,7 +62,7 @@ def parallelDeploy(servers) {
         parallelSteps["Deploy to ${server}"] = {
             // SSH into each server and execute the deployment script
             sh """
-                sshpass -p "$PASS" scp -o StrictHostKeyChecking=no ${env.SCRIPT_FILE} $USER@${server}:/tmp/${env.SCRIPT_FILE}
+                sshpass -p "$PASS" scp -o StrictHostKeyChecking=no /home/centos/patches/${env.SCRIPT_FILE} $USER@${server}:/tmp/${env.SCRIPT_FILE}
                 sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < /tmp/${env.SCRIPT_FILE}
             """
         }

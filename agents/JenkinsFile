@@ -11,7 +11,7 @@ pipeline {
     }
     environment {
         GIT_REPO_URL = 'https://github.com/nivasgoud/Jenkins-POC.git'
-        SSH_CREDENTIALS_ID = 'ssh-agent'
+        SSH_CREDENTIALS_ID = 'ssh-auth'
         SCRIPT_FILE = 'deploy.sh'
     }
     stages {

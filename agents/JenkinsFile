@@ -63,7 +63,7 @@ def parallelDeploy(servers) {
             // SSH into each server and execute the deployment script
             sh """
                 sshpass -p \$PASS scp -o StrictHostKeyChecking=no /home/centos/patches/${env.SCRIPT_FILE} \$USER@${server}:/tmp/${env.SCRIPT_FILE}
-                sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < /tmp/${env.SCRIPT_FILE}
+                sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < deployment-scripts/${env.SCRIPT_FILE}
             """
         }
     }

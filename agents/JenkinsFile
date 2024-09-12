@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+    parameters {
+        extendedChoice(
+            name: 'ENVIRONMENT',
+            type: 'PT_SINGLE_SELECT',
+            description: 'Select the environment',
+            value: 'DEV,QA,PROD',
+            defaultValue: 'DEV'
+        )
+    }
+    environment {
+        GIT_REPO_URL = 'https://github.com/nivasgoud/Jenkins-POC.git'
+        SSH_CREDENTIALS_ID = 'ssh-agent'
+        SCRIPT_FILE = 'deploy.sh'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                // Clone the repository containing the server files and deployment scripts
+                git url: env.GIT_REPO_URL, credentialsId: env.SSH_CREDENTIALS_ID
+            }
+        }
+        stage('Load Servers') {
+            steps {
+                script {
+                    def serversFile = ''
+                    switch(params.ENVIRONMENT) {
+                        case 'DEV':
+                            serversFile = 'dev_servers.txt'
+                            break
+                        case 'QA':
+                            serversFile = 'qa_servers.txt'
+                            break
+                        case 'PROD':
+                            serversFile = 'prod_servers.txt'
+                            break
+                        default:
+                            error "Unknown environment: ${params.ENVIRONMENT}"
+                    }
+
+                    // Load server list from file in the workspace
+                    def servers = readFile(serversFile).split("\n").findAll { it.trim() }
+                    echo "Deploying to ${params.ENVIRONMENT} environment"
+                    echo "Total Servers: ${servers.size()}"
+                    echo "Servers: ${servers.join(', ')}"
+                    
+                    // Deploy to the servers
+                    sshagent([env.SSH_CREDENTIALS_ID]) {
+                        parallelDeploy(servers)
+                    }
+                }
+            }
+        }
+    }
+}
+
+def parallelDeploy(servers) {
+    def parallelSteps = [:]
+    servers.each { server ->
+        parallelSteps["Deploy to ${server}"] = {
+            // SSH into each server and execute the deployment script
+            sh """
+                ssh -o StrictHostKeyChecking=no user@${server} 'bash -s' < deployment-scripts/${env.SCRIPT_FILE}
+            """
+        }
+    }
+    parallel parallelSteps
+}

@@ -1,0 +1,40 @@
+// pipeline {
+//     agent none
+//     stages {
+//         stage('Build') {
+//             agent { label 'server1' }
+//             steps {
+//                 echo 'Building on server1'
+//                 // Your build steps here
+//             }
+//         }
+//         stage('Test') {
+//             agent { label 'server2' }
+//             steps {
+//                 echo 'Testing on server2'
+//                 // Your test steps here
+//             }
+//         }
+//     }
+// }
+
+pipeline {
+    agent any
+    parameters {
+        choice(name: 'SERVER', choices: ['server1', 'server2', 'server3', 'server4'], description: 'Select a server')
+    }
+
+    stages {
+        stage('Run Script on Server') {
+            steps {
+                script {
+                    def scriptPath = '/path/to/your/script.sh'
+
+                    sshagent(['your-ssh-credentials-id']) {
+                        sh "ssh ${params.SERVER} 'bash -s' < ${scriptPath}"
+                    }
+                }
+            }
+        }
+    }
+} 

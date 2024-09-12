@@ -18,7 +18,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Clone the repository containing the server files and deployment scripts
-                git branch: 'main', url: env.GIT_REPO_URL, credentialsId: env.SSH_CREDENTIALS_ID
+                git branch: 'main', url: env.GIT_REPO_URL
             }
         }
         stage('Load Servers') {

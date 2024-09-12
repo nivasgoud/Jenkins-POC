@@ -27,13 +27,13 @@ pipeline {
                     def serversFile = ''
                     switch(params.ENVIRONMENT) {
                         case 'DEV':
-                            serversFile = 'dev_servers.txt'
+                            serversFile = 'agents/dev_servers.txt'
                             break
                         case 'QA':
-                            serversFile = 'qa_servers.txt'
+                            serversFile = 'agents/qa_servers.txt'
                             break
                         case 'PROD':
-                            serversFile = 'prod_servers.txt'
+                            serversFile = 'agents/prod_servers.txt'
                             break
                         default:
                             error "Unknown environment: ${params.ENVIRONMENT}"

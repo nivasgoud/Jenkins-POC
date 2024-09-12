@@ -11,7 +11,7 @@ pipeline {
     }
     environment {
         GIT_REPO_URL = 'https://github.com/nivasgoud/Jenkins-POC.git'
-        SSH_CREDENTIALS_ID = 'ca4d572d-a540-4837-a010-77c6ded23daa'
+        SSH_CREDENTIALS_ID = '2b62c75d-3de5-4729-967a-b7dc76a48f2d'
         SCRIPT_FILE = 'deploy.sh'
     }
     stages {
@@ -46,7 +46,8 @@ pipeline {
                     echo "Servers: ${servers.join(', ')}"
                     
                     // Deploy to the servers
-                    sshagent([env.SSH_CREDENTIALS_ID]) {
+                    // sshagent([env.SSH_CREDENTIALS_ID]) 
+                    withCredentials([usernamePassword(credentialsId: env.SSH_CREDENTIALS_ID, usernameVariable: 'USER', passwordVariable: 'PASS')]){
                         parallelDeploy(servers)
                     }
                 }
@@ -61,7 +62,7 @@ def parallelDeploy(servers) {
         parallelSteps["Deploy to ${server}"] = {
             // SSH into each server and execute the deployment script
             sh """
-                ssh -o StrictHostKeyChecking=no ${server} 'bash -s' < deployment-scripts/${env.SCRIPT_FILE}
+                sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < deployment-scripts/${env.SCRIPT_FILE}
             """
         }
     }

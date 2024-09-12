@@ -61,7 +61,7 @@ def parallelDeploy(servers) {
         parallelSteps["Deploy to ${server}"] = {
             // SSH into each server and execute the deployment script
             sh """
-                ssh -o StrictHostKeyChecking=no user@${server} 'bash -s' < deployment-scripts/${env.SCRIPT_FILE}
+                ssh -o StrictHostKeyChecking=no ${server} 'bash -s' < deployment-scripts/${env.SCRIPT_FILE}
             """
         }
     }

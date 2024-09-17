@@ -1,0 +1,108 @@
+pipeline {
+    agent any
+
+    parameters {
+        extendedChoice(
+            name: 'ENVIRONMENT',
+            type: 'PT_SINGLE_SELECT',
+            description: 'Select the environment',
+            value: 'DEV,QA,PROD',
+            defaultValue: 'DEV'
+        )
+    }
+
+    environment {
+        WORKSPACE_DIR = '/home/centos/jenkins/workspace' // Adjust path based on your Jenkins setup
+        SSH_CREDENTIALS_ID = 'b026ee45-e01b-4b42-9532-662debd3bd8e'
+        SCRIPT_FILE = 'deploy.sh'
+    }
+
+    stages {
+        stage('Load Server List') {
+            steps {
+			    ws("${env.WORKSPACE_DIR}") {
+			script {
+				// Define the path to the server list file
+				def serversFilePath = "${WORKSPACE_DIR}/${params.ENVIRONMENT}_servers_list.txt"
+				
+				if (!fileExists(serversFilePath)) {
+					error "Server list file not found: ${serversFilePath}"
+				}
+
+				// Read the file and make sure it is not empty
+				def serverList = readFile(serversFilePath).split('\n').findAll { it.trim() }
+				if (serverList.isEmpty()) {
+					error "The server list file is empty."
+				}
+
+				echo "Servers in file: ${serverList.join(', ')}"
+				
+				// Store the server list in a Groovy variable (not in env)
+				script {
+					currentBuild.description = serverList.join(', ') // Optional, for visibility in Jenkins UI
+				}
+				
+				// Pass the server list to the next stage using return
+				return serverList.join(',')
+			}
+			}
+            }
+        }
+
+        stage('Select and Deploy to Servers') {
+            steps {
+			    ws("${env.WORKSPACE_DIR}") {
+                script {
+                    // Get the server list from the previous stage
+                    def serversListString = loadServerList() // Assign result from previous stage
+                    if (!serversListString) {
+                        error "No servers available in the server list."
+                    }
+
+                    // User selects servers for deployment
+                    def selectedServers = input message: 'Select servers to deploy to:', 
+                        parameters: [extendedChoice(
+                            name: 'SELECTED_SERVERS',
+                            type: 'PT_CHECKBOX',
+                            description: 'Select specific servers to deploy to',
+                            value: serversListString,
+                            multiSelectDelimiter: ','
+                        )]
+
+                    // Check if the user selected any servers
+                    if (!selectedServers || selectedServers.trim().isEmpty()) {
+                        error "No servers selected for deployment."
+                    }
+
+                    def selectedServersList = selectedServers.split(',')
+                    echo "Selected servers: ${selectedServersList.join(', ')}"
+
+                    // Deploy to the selected servers using SSH credentials
+                    withCredentials([usernamePassword(credentialsId: SSH_CREDENTIALS_ID, usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        parallelDeploy(selectedServersList)
+                    }
+                }
+			 }
+            }
+        }
+    }
+}
+
+def loadServerList() {
+    return currentBuild.description // Pass server list from one stage to another
+}
+
+def parallelDeploy(servers) {
+    def parallelSteps = [:]
+    servers.each { server ->
+        parallelSteps["Deploy to ${server}"] = {
+            sh """
+                sshpass -p \$PASS scp -o StrictHostKeyChecking=no ${env.WORKSPACE_DIR}/${env.SCRIPT_FILE} \$USER@${server}:/tmp/${env.SCRIPT_FILE}
+
+				sshpass -p \$PASS ssh -o StrictHostKeyChecking=no \$USER@${server} 'bash -s' < ${env.WORKSPACE_DIR}/${env.SCRIPT_FILE}
+
+            """
+        }
+    }
+    parallel parallelSteps
+}

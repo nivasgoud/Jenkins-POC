@@ -1,0 +1,22 @@
+pipeline {
+    agent any
+
+    parameters {
+        base64File(description: 'Upload the server list file as Base64', name: 'SERVERS_FILE_BASE64')
+    }
+
+    stages {
+        stage('Decode Base64 File') {
+            steps {
+                sh 'echo $SERVERS_FILE_BASE64 | base64 -d > servers_list.txt'
+            }
+        }
+        stage('Verify File Contents') {
+            steps {
+                withFileParameter('SERVERS_FILE_BASE64') {
+                    sh 'cat servers_list.txt'
+                }
+            }
+        }
+    }
+}

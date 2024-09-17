@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    parameters {
+        extendedChoice(
+            name: 'ENVIRONMENT',
+            type: 'PT_SINGLE_SELECT',
+            description: 'Select the environment',
+            value: 'DEV,QA,PROD',
+            defaultValue: 'DEV'
+        )
+        base64File(
+            name: 'SERVERS_FILE_BASE64',
+            description: 'Upload the server list file as Base64'
+        )
+    }
+
+    environment {
+        // File paths within the workspace
+        WORKSPACE_DIR = '/home/centos/jenkins/workspace'
+        SERVERS_LIST_FILE = "${env.WORKSPACE_DIR}/${params.ENVIRONMENT}_servers_list.txt"
+    }
+
+    stages {
+        stage('Decode and Save Base64 File') {
+            steps {
+                ws("${env.WORKSPACE_DIR}") {
+                script {
+                    // Ensure the base64 file parameter is provided
+                    if (!params.SERVERS_FILE_BASE64) {
+                        error "You must upload a Base64-encoded server list file for the ${params.ENVIRONMENT} environment."
+                    }
+
+                    // Decode the uploaded base64 file and save it to the workspace
+                    sh "echo ${params.SERVERS_FILE_BASE64} | base64 -d > ${env.SERVERS_LIST_FILE}"
+                    echo "Decoded file saved to ${env.SERVERS_LIST_FILE}"
+                }
+            }
+        }
+        }
+
+        stage('Verify File Contents') {
+            steps {
+                ws("${env.WORKSPACE_DIR}") {
+                script {
+                    // Check if the decoded file exists
+                    if (!fileExists(env.SERVERS_LIST_FILE)) {
+                        error "The decoded server list file could not be found at: ${env.SERVERS_LIST_FILE}"
+                    }
+
+                    // Load the servers from the decoded file
+                    def servers = readFile(env.SERVERS_LIST_FILE).split("\n").findAll { it.trim() }
+
+                    // Verify the server list is not empty
+                    if (servers.isEmpty()) {
+                        error "The decoded server list file is empty."
+                    }
+
+                    // Print the available servers
+                    echo "Available Servers: ${servers.join(', ')}"
+                }
+            }
+        }
+      }
+    }
+}
